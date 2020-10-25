@@ -116,17 +116,73 @@ class VideoBuffer {
         char* buffer;
 };
 
-int main(){
+/*checks if vertex coordinates are in screen range
+(not sure if the range I assumed is correct (x=[-1,1],y=[-1,1],z=[1,2])*/
+bool checkValues(vector3d v) {
+    //check if the inserted vertex is on screen
+    if (v.x < -1 || v.x>1 || v.y < -1 || v.y>1 || v.z < 1 || v.z>2) {
+        std::cout << "Out of screen vertex. Please insert valid coordinates \nx=[-1,1]\ny=[-1,1]\nz=[1,2]";
+        return false;
+    }
+    else
+        return true;
+}
+
+/*get vertices from user and call DrawTriangles to perform projection
+* Issues:
+* 1) if the user behaves "well" it seems to work...but if he inserts a char as any of the vertex coordinates everything
+*    breaks
+* 2) if we need to keep in memory the values of triangles, I think we need to modify something
+*    because in the loop I reuse the same triangle instance everytime
+*
+* Let me know if you think this is a bad design. If you need clarifications text me anytime
+*/
+void UserInputTriangles(VideoBuffer v) {
+    int i = 0;
+    int j = i + 1;
+    char answer;
+    do {
+        vector3d v1, v2, v3;
+        std::cout << "Insert the triangle vertices:\nVertex 1: ";
+        std::cin >> v1.x >> v1.y >> v1.z;
+        //if user inserts an invalid input -> redo the cycle//
+        if (!checkValues(v1))
+            continue;
+        std::cout << "\nVertex 2: ";
+        std::cin >> v2.x >> v2.y >> v2.z;
+        /*if (!checkValues(v2))
+            continue;*/
+        std::cout << "\nVertex 3: ";
+        std::cin >> v3.x >> v3.y >> v3.z;
+        /*if (!checkValues(v3))
+            continue;*/
+
+            //graphic interface?
+        std::cout << "Would you like to insert another triangle? (y to answer yes)\n";
+        std::cin >> answer;
+        if (answer == 'y')
+            ++j; //if yes: keep cycling (i will be equal to j-1), else i=j and the loop ends
+        ++i;
+        triangle tri1 = { v1, v2, v3 };
+        v.drawTriangles(tri1);
+    } while (i < j);
+    return;
+}
+
+
+int main() {
     VideoBuffer v = VideoBuffer(150, 50);
 
-    // TODO: Remove hardcoded vertices/triangles and accept them as input parameters?
+    /* Haley hardcoded values
+    TODO: Remove hardcoded vertices/triangles and accept them as input parameters?
     vector3d v1 = { 1.0f, -1.0f, 1.5f };
     vector3d v2 = { 1.0f, 1.0f, 1.1f };
     vector3d v3 = { -1.0f, 1.0f, 1.5f };
-
     triangle tri1 = { v1, v2, v3 };
+    v.drawTriangles(tri1);*/
 
-    v.drawTriangles(tri1);
+    //Francesco function to get user vertices
+    UserInputTriangles(v);
     v.printBuffer();
     return 0;
 }
