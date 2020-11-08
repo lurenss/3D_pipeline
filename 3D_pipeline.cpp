@@ -2,23 +2,23 @@
 #include <limits>
 #include <stdio.h>
 #include <string.h>
+#include <cmath>
 
 struct vector3d {
 	float x, y, z;
 };
 
+typedef struct {
+  float x, y, z;
+} Point3D;
+
 struct triangle {
-	vector3d p[3];
+	 Point3D p[3];
 };
 
 struct matrix4x4 {
 	float m[4][4];
 };
-
-typedef struct {
-  long x, y;
-  unsigned char color;
-} Point2D;
 
 #define SCREEN_HEIGHT 50
 #define SCREEN_WIDTH  150
@@ -30,25 +30,42 @@ long ContourX[SCREEN_HEIGHT][2];
 
 class Screen {
     public:
+        Point3D b0, b1, b2;
+
         Screen(int width_, int height_) {
             width = width_;
             height = height_;
 
             buffer = new char [width * height]; 
+            zBuffer = new char [width * height]; 
             cleanBuffer();
+            zcleanBuffer();
         }
-        void SetPixel(long x, long y, char color) {
-            if ((x < 0) || (x >= width) || (y < 0) || (y >= height)) {
+        void SetPixel(long x, long y, char c) {
+            //if ((x < 0) || (x >= width) || (y < 0) || (y >= height)) {
+            if ( x < 0 || x >= width * height || y < 0 || y >= width * height) {
                 return;
             }
+            char d = zBuffer[GetIndex(y,x)];
 
-            buffer[GetIndex(y,x)] = color;
+            if (d == '.') {
+                d = c;
+            }
+
+            buffer[GetIndex(y,x)] = d;
+    
         }
 
         void cleanBuffer() {
             for (int i = 0; i < (width * height); ++i)
                 buffer[i] = '.';
         }
+
+        void zcleanBuffer() {
+            for (int i = 0; i < (width * height); ++i)
+                zBuffer[i] = '.';
+        }
+
         void Visualize(void) {
             long x, y;
 
@@ -116,8 +133,127 @@ class Screen {
                 }
             }
         }
+        triangle projectCoordinates(triangle tri) {
 
-        void DrawTriangle(Point2D p0, Point2D p1, Point2D p2) {
+            // DEBUG - Can remove later
+            int range[3] = {0,1,2};
+            std::cout << "ORIGINAL COORDINATES\n";
+            for ( auto i : range ) {
+                std::cout << tri.p[i].x;
+                std::cout << "\n";
+                std::cout << tri.p[i].y;
+                std::cout << "\n";
+                std::cout << tri.p[i].z;
+                std::cout << "\n\n";
+            }
+
+            // Projection matrix specifications
+            float near = 1.0f; // distance from viewer to nearest point in screen
+            float far = 2.0f; // distance from viewer to furthest point in screen
+            float fov = 90.0f; // field of view = 90 degrees
+            float fovRadian = 1.0f / tanf(fov * 0.5f / 180.0f * 3.14159f);
+            float aspectRatio = (float) SCREEN_HEIGHT / (float) SCREEN_WIDTH;
+            float zScaleFactor = far / (far - near);
+            float zScaleFactorOffset = (-far * near) / (far - near); // offset to account for the space between the viewer and the screen
+
+            matrix4x4 projectionMatrix = { 0 };
+            projectionMatrix.m[0][0] = aspectRatio * fovRadian;
+            projectionMatrix.m[1][1] = fovRadian;
+            projectionMatrix.m[2][2] = zScaleFactor;
+            projectionMatrix.m[3][2] = zScaleFactorOffset;
+            projectionMatrix.m[2][3] = 1.0f;
+            projectionMatrix.m[3][3] = 0.0f;
+
+            // Projection - For each vertex in the vector, change its coordinates from 3D -> 2D
+            triangle triProjected;
+            multiplyVectorMatrix(tri.p[0], triProjected.p[0], projectionMatrix);
+            multiplyVectorMatrix(tri.p[1], triProjected.p[1], projectionMatrix);
+            multiplyVectorMatrix(tri.p[2], triProjected.p[2], projectionMatrix);
+
+            // DEBUG - Can remove later - We should only need to use the x and y cordinates after projection
+            std::cout << "AFTER PROJECTION\n";
+            for ( auto i : range ) {
+                std::cout << triProjected.p[i].x;
+                std::cout << "\n";
+                std::cout << triProjected.p[i].y;
+                std::cout << "\n";
+                std::cout << triProjected.p[i].z;
+                std::cout << "\n\n";
+            }
+
+            // Convert from 2D x,y coordinates to integer values within our display screen buffer
+            triangle tri_norm;
+            tri_norm.p[0] = normalizeCoordinates(triProjected.p[0]);
+            tri_norm.p[1] = normalizeCoordinates(triProjected.p[1]);
+            tri_norm.p[2] = normalizeCoordinates(triProjected.p[2]);
+          
+            std::cout << "AFTER PROJECTION TO BUFFER PIXELS\n";
+            std::cout << tri_norm.p[0].x;
+            std::cout << "\n";
+            std::cout << tri_norm.p[0].y;
+            std::cout << "\n\n";
+            std::cout << tri_norm.p[1].x;
+            std::cout << "\n";
+            std::cout << tri_norm.p[1].y;
+            std::cout << "\n\n";
+            std::cout << tri_norm.p[2].x;
+            std::cout << "\n";
+            std::cout << tri_norm.p[2].y;
+            std::cout << "\n\n";
+
+            return tri_norm;
+		
+        }
+
+		
+		Point3D normalizeCoordinates(Point3D v) {
+            Point3D p;
+            p.x = round(((v.x+1) * (width)) / 2);
+            p.y = round(((v.y+1) * (height)) / 2);
+
+            // normalize z and set it in z buffer of same size as display buffer
+            // z_projected is in [1,2] -> we shift it in [0,1] -> multiply it by 10 -> round it to nearest integer
+            int z = round(v.z * 10);
+            
+
+
+            if (((zBuffer[GetIndex(p.y,p.x)]) == '.') || (zBuffer[GetIndex(p.y,p.x)] > z)) {
+                zBuffer[GetIndex(p.y,p.x)] = (char) (z+'0');
+            }
+    
+            p.z = z;
+
+            return p;
+		}
+
+        /*int normalizeZ(float z) {
+
+            //do soemting to make the float 0-1
+            return ;
+        }*/
+
+		// TODO: Can we use some sort of library for this instead of a manual calculation?
+        /**
+        * @brief Multiplies a 3D vector of (x,y,z) cordinates (with an assumed w=1 fourth coordinate) by a matrix
+        * @param &input pointer to the initial vector3d (x,y,z) coordinates
+        * @param &output pointer to the output vector3d object which contains projected coordinates
+        * @return void
+        */
+        void multiplyVectorMatrix(Point3D &input, Point3D &output, matrix4x4 &matrix) {
+            output.x = (input.x * matrix.m[0][0]) + (input.y * matrix.m[1][0]) + (input.z * matrix.m[2][0]) + matrix.m[3][0];
+            output.y = (input.x * matrix.m[0][1]) + (input.y * matrix.m[1][1]) + (input.z * matrix.m[2][1]) + matrix.m[3][1];
+            output.z = (input.x * matrix.m[0][2]) + (input.y * matrix.m[1][2]) + (input.z * matrix.m[2][2]) + matrix.m[3][2];
+
+            float w = input.x * matrix.m[0][3] + input.y * matrix.m[1][3] + (input.z * matrix.m[2][3]) + matrix.m[3][3];
+
+            if (w != 0.0f) {
+                output.x /= w;
+                output.y /= w;
+                output.z /= w;
+            }
+        }
+
+        void DrawTriangle(Point3D p0, Point3D p1, Point3D p2) {
             int y;
 
             for (y = 0; y < SCREEN_HEIGHT; y++)
@@ -132,16 +268,15 @@ class Screen {
 
             for (y = 0; y < SCREEN_HEIGHT; y++)
             {
-                if (ContourX[y][1] >= ContourX[y][0])
-                {
-                long x = ContourX[y][0];
-                long len = 1 + ContourX[y][1] - ContourX[y][0];
+                if (ContourX[y][1] >= ContourX[y][0]) {
+                    long x = ContourX[y][0];
+                    long len = 1 + ContourX[y][1] - ContourX[y][0];
 
-                // Can draw a horizontal line instead of individual pixels here
-                while (len--)
-                {
-                    SetPixel(x++, y, p0.color);
-                }
+                    // Can draw a horizontal line instead of individual pixels here
+                    while (len--) {
+                        char z = (char) (round(calcZ(p0, p1, p2, x, y)) + '0');
+                        SetPixel(x++, y, z);
+                    }
                 }
             }
         };
@@ -150,13 +285,30 @@ class Screen {
             int width;
             int height;  
             char* buffer;  
+            char* zBuffer;  
             int rowCount;
             int colCount;
 
             int GetIndex(long y, long x) {
-            return (width * (y-1)) + x - 1;
-        }
-              
+                return (width * (y-1)) + x - 1;
+            }
+
+            float calcZ(Point3D p1, Point3D p2, Point3D p3, int x, int y) { 
+                float a1 = p2.x - p1.x; 
+                float b1 = p2.y - p1.y; 
+                float c1 = p2.z - p1.z; 
+                float a2 = p3.x - p1.x; 
+                float b2 = p3.y - p1.y; 
+                float c2 = p3.z - p1.z; 
+                float a = b1 * c2 - b2 * c1; 
+                float b = a2 * c1 - a1 * c2; 
+                float c = a1 * b2 - b1 * a2; 
+                float d = (- a * p1.x - b * p1.y - c * p1.z); 
+
+                return (-a*x-b*y-d)/c;
+            }
+            
+
 };
 
 /*
@@ -311,32 +463,53 @@ bool checkValues(vector3d v) {
 }*/
 
 int main() {
-  Point2D p0, p1, p2;
+    Point3D p0, p1, p2, p3;
 
     Screen s = Screen(SCREEN_WIDTH,SCREEN_HEIGHT);
  
-  // generate random triangle coordinates
-  srand((unsigned)time(NULL));
+    // generate random triangle coordinates
+    srand((unsigned)time(NULL));
 
-  p0.x = rand() % SCREEN_WIDTH;
-  p0.y = rand() % SCREEN_HEIGHT;
+    p0.x = 1.0;
+    p0.y = -1.0;
+    p0.z = 1.5;
 
-  p1.x = rand() % SCREEN_WIDTH;
-  p1.y = rand() % SCREEN_HEIGHT;
+    p1.x = 1.0;
+    p1.y = 1.0;
+    p1.z = 1.1;
 
-  p2.x = rand() % SCREEN_WIDTH;
-  p2.y = rand() % SCREEN_HEIGHT;
+    p2.x = -1.0;
+    p2.y = 1.0;
+    p2.z = 1.5;
 
-  // draw the triangle
-  p0.color = '1';
-  s.DrawTriangle(p0, p1, p2);
+    p3.x = -1.0;
+    p3.y = -1.0;
+    p3.z = 1.9;
 
-  // also draw the triangle's vertices
-  s.SetPixel(p0.x, p0.y, '*');
-  s.SetPixel(p1.x, p1.y, '*');
-  s.SetPixel(p2.x, p2.y, '*');
+    triangle tri1 = { p0, p1, p2 };
+    triangle tri2 = { p0, p2, p3 };
 
-  s.Visualize();
+    triangle t1 = s.projectCoordinates(tri1);
+    triangle t2 = s.projectCoordinates(tri2);
 
-  return 0;
+    //s.DrawTriangle(s.b0, s.b1, s.b2);
+    s.DrawTriangle(t1.p[0], t1.p[1], t1.p[2]);
+    s.DrawTriangle(t2.p[0], t2.p[1], t2.p[2]);
+
+    // also draw the triangle's vertices
+    s.SetPixel(s.b0.x, s.b0.y, s.b0.z);
+    s.SetPixel(s.b1.x, s.b1.y, s.b1.z);
+    s.SetPixel(s.b2.x, s.b2.y, s.b2.z);
+
+    s.SetPixel(t1.p[0].x, t1.p[0].y, t1.p[0].z);
+    s.SetPixel(t1.p[1].x, t1.p[1].y, t1.p[1].z);
+    s.SetPixel(t1.p[2].x, t1.p[2].y, t1.p[2].z);
+
+    s.SetPixel(t2.p[0].x, t2.p[0].y, t2.p[0].z);
+    s.SetPixel(t2.p[1].x, t2.p[1].y, t2.p[1].z);
+    s.SetPixel(t2.p[2].x, t2.p[2].y, t2.p[2].z);
+
+    s.Visualize();
+
+    return 0;
 }
