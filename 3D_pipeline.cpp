@@ -34,8 +34,8 @@ class Screen {
             height = screenHeight;
             
             // Initialize the screen's display buffer
-            target_t = new char [width * height]; 
-            InitializeBuffer(target_t, '.');
+            buffer = new char [width * height]; 
+            InitializeBuffer(buffer, '.');
 
             // Initialize the screen's z-value buffer
             zBuffer = new char [width * height];
@@ -49,7 +49,7 @@ class Screen {
         void Visualize() {
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    printf("%c", target_t[GetIndex(y,x)]);
+                    printf("%c", buffer[GetIndex(y,x)]);
                 }
                 printf("\n");
             }
@@ -58,26 +58,67 @@ class Screen {
         // TODO
         triangle project3Dto2D(triangle tri) {
 
+            // DEBUG - Can remove later
+            int range[3] = {0,1,2};
+            std::cout << "ORIGINAL COORDINATES\n";
+            for ( auto i : range ) {
+                std::cout << tri.points[i].x;
+                std::cout << "\n";
+                std::cout << tri.points[i].y;
+                std::cout << "\n";
+                std::cout << tri.points[i].z;
+                std::cout << "\n\n";
+            }
+
             // Projection matrix specifications
             float fov = 90.0f; // field of view = 90 degrees
             float fovRadian = 1.0f / tanf(fov * 0.5f / 180.0f * 3.14159f); // field of view in radians
-            float aspectRatio = (float) height / (float) width;
+            float aspectRatio = (float) height / width;
             float zScaleFactor = far / (far - near);
             float zScaleFactorOffset = (-far * near) / (far - near); // offset to account for the space between the viewer and the screen
 
             matrix4x4 projectionMatrix = { 0 };
-            projectionMatrix.m[0][0] = aspectRatio * fovRadian;
+
+            // original
+            /*projectionMatrix.m[0][0] = aspectRatio * fovRadian;
             projectionMatrix.m[1][1] = fovRadian;
             projectionMatrix.m[2][2] = zScaleFactor;
             projectionMatrix.m[3][2] = zScaleFactorOffset;
             projectionMatrix.m[2][3] = 1.0f;
-            projectionMatrix.m[3][3] = 0.0f;
+            projectionMatrix.m[3][3] = 0.0f;*/
+
+            // col major
+
+            matrix4x4 otherMatrix = { 0 };
+            otherMatrix.m[0][0] = (2 * near)/ (right - left);
+            otherMatrix.m[1][1] = (2 * near)/ (bottom - top);
+            otherMatrix.m[2][2] = (far + near) / (far - near);
+            otherMatrix.m[2][1] = -(bottom + top)/(bottom - top);
+            otherMatrix.m[3][2] = (-2 * near * far) / (far - near);
+            otherMatrix.m[2][0] = -(right + left)/(right - left);
+            otherMatrix.m[2][3] = 1.0;
 
             // Projection - For each vertex in the triangle, change its coordinates from 3D -> 2D
-            triangle triProjected;
+            /*triangle triProjected;
             multiplyVectorMatrix(tri.points[0], triProjected.points[0], projectionMatrix);
             multiplyVectorMatrix(tri.points[1], triProjected.points[1], projectionMatrix);
-            multiplyVectorMatrix(tri.points[2], triProjected.points[2], projectionMatrix);
+            multiplyVectorMatrix(tri.points[2], triProjected.points[2], projectionMatrix);*/
+
+            triangle triProjected;
+            multiplyVectorMatrix(tri.points[0], triProjected.points[0], otherMatrix);
+            multiplyVectorMatrix(tri.points[1], triProjected.points[1], otherMatrix);
+            multiplyVectorMatrix(tri.points[2], triProjected.points[2], otherMatrix);
+
+            // DEBUG - Can remove later - We should only need to use the x and y cordinates after projection
+            std::cout << "AFTER PROJECTION\n";
+            for ( auto i : range ) {
+                std::cout << triProjected.points[i].x;
+                std::cout << "\n";
+                std::cout << triProjected.points[i].y;
+                std::cout << "\n";
+                std::cout << triProjected.points[i].z;
+                std::cout << "\n\n";
+            }
 
             // Convert from 2D x,y coordinates to integer values within our display screen buffer
             triangle tri_norm;
@@ -85,14 +126,26 @@ class Screen {
             tri_norm.points[1] = normalizeCoordinates(triProjected.points[1]);
             tri_norm.points[2] = normalizeCoordinates(triProjected.points[2]);
 
+            std::cout << "AFTER NORMALIZING\n";
+            for ( auto i : range ) {
+                std::cout << tri_norm.points[i].x;
+                std::cout << "\n";
+                std::cout << tri_norm.points[i].y;
+                std::cout << "\n";
+                std::cout << tri_norm.points[i].z;
+                std::cout << "\n\n";
+            }
+
             return tri_norm;
         }
 
 		// TODO
 		Point3D normalizeCoordinates(Point3D v) {
+
+            // go from float values (-1, 1) to integer values (0, widht*height)
             Point3D p;
-            p.x = round(((v.x+1) * (width)) / 2);
-            p.y = round(((v.y+1) * (height)) / 2);
+            p.x = round(((v.x+1) * (width)) / 2); // go from float values (-1, 1) to integer values (0, width)
+            p.y = round(((v.y+1) * (height)) / 2); // go from float values (-1, 1) to integer values (0, height)
 
             // normalize z and set it in z buffer of same size as display buffer
             // z_projected is in [1,2] -> we shift it in [0,1] -> multiply it by 10 -> round it to nearest integer
@@ -135,7 +188,7 @@ class Screen {
         };
 
         private:
-            char* target_t; // display buffer
+            char* buffer; // display buffer
             char* zBuffer; // z-value vuffer
 
             int width; // screen width
@@ -161,7 +214,7 @@ class Screen {
                     d = c;
                 }
 
-                target_t[GetIndex(y,x)] = d;
+                buffer[GetIndex(y,x)] = d;
             }
 
             /**
@@ -184,6 +237,7 @@ class Screen {
             * Given the three vertices of a triangle and some x,y values within the triangle, caluclate the z value related to the given x and y values.
             * Uses the equation plane caluclation to detemrine the z value.
             */
+           // Could do inside outside test here to fer tgere barycentric coordinares (w1, w2, w3)
             float calculateZ(Point3D p1, Point3D p2, Point3D p3, int x, int y) { 
                 float a1 = p2.x - p1.x; 
                 float b1 = p2.y - p1.y; 
@@ -224,6 +278,7 @@ class Screen {
             * TODO: Scans a side of a triangle setting min X and max X in ContourX[][]
             // (using the Bresenham's line drawing algorithm).
             */
+           // instad of this we can do the bounding box and then check every pixel
             void ScanLine(long x1, long y1, long x2, long y2) {
                 long sx, sy, dx1, dy1, dx2, dy2, x, y, m, n, k, cnt;
 
@@ -330,6 +385,7 @@ class Screen {
 int main() {
 
     // Initialize the screen
+    //Screen<char> screen(SCREEN_WIDTH,SCREEN_HEIGHT);
     Screen screen = Screen(SCREEN_WIDTH,SCREEN_HEIGHT);
 
     //UserInputTriangles(v);
