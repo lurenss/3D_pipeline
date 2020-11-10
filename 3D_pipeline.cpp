@@ -1,6 +1,7 @@
 #include <iostream>
 #include <limits>
 #include <stdio.h>
+#include <cmath>
 
 // A point with x,y,z coordinates
 struct Point3D {
@@ -41,7 +42,6 @@ class Screen {
             // Initialize the screen's z-value buffer
             zBuffer = new char [width * height];
             InitializeBuffer(zBuffer, SCREEN_INIT_CHAR);
-            // TODO: maybe make this a 0 and then compare differently the zbuffer values?
         }
 
         /**
@@ -57,30 +57,18 @@ class Screen {
         }
 
         /**
-        * Use perspective projection and normalization to convert the 3D coordinates into 2D coordinates that fit the display screen.
+        * Use perspective projection and normalization to convert the 3D coordinates into 2D coordinates that fit the display screen
         */
         triangle projectCoordinates(triangle tri) {
 
-            // DEBUG - Can remove later
-            int range[3] = {0,1,2};
-            std::cout << "ORIGINAL COORDINATES\n";
-            for ( auto i : range ) {
-                std::cout << tri.points[i].x;
-                std::cout << "\n";
-                std::cout << tri.points[i].y;
-                std::cout << "\n";
-                std::cout << tri.points[i].z;
-                std::cout << "\n\n";
-            }
-
             // Perspective projection matrix specifications (column major matrix)
             matrix4x4 projectionMatrix = { 0 };
-            projectionMatrix.m[0][0] = (2 * near)/ (right - left);
-            projectionMatrix.m[1][1] = (2 * near)/ (bottom - top);
+            projectionMatrix.m[0][0] = (2 * near) / (right - left);
+            projectionMatrix.m[1][1] = (2 * near) / (bottom - top);
             projectionMatrix.m[2][2] = (far + near) / (far - near);
-            projectionMatrix.m[2][1] = -(bottom + top)/(bottom - top);
+            projectionMatrix.m[2][1] = -(bottom + top) / (bottom - top);
             projectionMatrix.m[3][2] = (-2 * near * far) / (far - near);
-            projectionMatrix.m[2][0] = -(right + left)/(right - left);
+            projectionMatrix.m[2][0] = -(right + left) / (right - left);
             projectionMatrix.m[2][3] = 1.0;
 
             // For each vertex in the triangle, project its coordinates from 3D -> 2D based on the perspective projection matrix
@@ -88,17 +76,6 @@ class Screen {
             multiplyVectorMatrix(tri.points[0], triProjected.points[0], projectionMatrix);
             multiplyVectorMatrix(tri.points[1], triProjected.points[1], projectionMatrix);
             multiplyVectorMatrix(tri.points[2], triProjected.points[2], projectionMatrix);
-
-            // DEBUG - Can remove later
-            std::cout << "AFTER PROJECTION\n";
-            for ( auto i : range ) {
-                std::cout << triProjected.points[i].x;
-                std::cout << "\n";
-                std::cout << triProjected.points[i].y;
-                std::cout << "\n";
-                std::cout << triProjected.points[i].z;
-                std::cout << "\n\n";
-            }
 
             return triProjected;
         }
@@ -114,14 +91,13 @@ class Screen {
             for (int i = 0; i < 3; i++) {
             
                 // Go from float values within x range [-1, 1] to integer values within the display screen width range [0, SCREEN_WIDTH)
-                triNormalized.points[i].x = round(((triProjected.points[i].x + 1) * (width)) / 2);
+                triNormalized.points[i].x = ((triProjected.points[i].x + 1) * (width)) / 2;
 
                 // Go from float values within x range [-1, 1] to integer values within the display screen height range [0, SCREEN_HEIGHT)
-                triNormalized.points[i].y = round(((triProjected.points[i].y + 1) * (height)) / 2);
+                triNormalized.points[i].y = ((triProjected.points[i].y + 1) * (height)) / 2;
 
-                // Go from float values within z range [0, 1] to integer values within [0, 9]
-                // TODO: This logic assumes that we get projected z values always between [0,1] but we currently get one as -0.636363 right now which causes some issues
-                int z = round(triProjected.points[i].z * 10);
+                // Go from float values within z range [-1, 1] to integer values within [0, 9]
+                int z = ((triProjected.points[i].z + 1) * 10) / 2;
                 triNormalized.points[i].z = z;
 
                 // Set the zBuffer value for the normalized x,y coordinates
@@ -130,18 +106,6 @@ class Screen {
                 if (zValue == SCREEN_INIT_CHAR || zValue > z) {
                     zBuffer[GetIndex(triNormalized.points[i].y, triNormalized.points[i].x)] = (char) (z + '0');
                 }
-            }
-
-            // DEBUG - Can remove later
-            int range[3] = {0,1,2};
-            std::cout << "AFTER NORMALIZING\n";
-            for ( auto i : range ) {
-                std::cout << triNormalized.points[i].x;
-                std::cout << "\n";
-                std::cout << triNormalized.points[i].y;
-                std::cout << "\n";
-                std::cout << triNormalized.points[i].z;
-                std::cout << "\n\n";
             }
 
             return triNormalized;
@@ -172,7 +136,7 @@ class Screen {
 
                     while (len--) {
                         // Calculate the z value for each x,y coorodinate pair within the triangle
-                        char z = (char) (round(calculateZ(p0, p1, p2, x, y)) + '0');
+                        char z = (char) (calculateZ(p0, p1, p2, x, y)) + '0';
 
                         // Set each pixel within the triangle
                         SetPixel(x++, y, z);
@@ -333,6 +297,7 @@ int main() {
     // Initialize the screen
     Screen screen = Screen(SCREEN_WIDTH,SCREEN_HEIGHT);
 
+    // Hard-coded points which match the Assignment 1 Example on Moodle
     Point3D p1, p2, p3, p4;
 
     p1.x = 1.0;
