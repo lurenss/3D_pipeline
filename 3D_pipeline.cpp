@@ -9,12 +9,12 @@ struct Point3D {
 };
 
 // A triangle composed of 3 points
-struct triangle {
+struct Triangle {
     Point3D points[3];
 };
 
 // A 4x4 matrix used for projection calculations
-struct matrix4x4 {
+struct Matrix4x4 {
 	float m[4][4];
 };
 
@@ -51,19 +51,19 @@ class Screen {
         void Visualize() {
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    printf("%c", buffer[GetIndex(y,x)]);
+                    std::cout << buffer[GetIndex(y,x)];
                 }
-                printf("\n");
+                std::cout << "\n";
             }
         }
 
         /**
         * Use perspective projection and normalization to convert the 3D coordinates into 2D coordinates that fit the display screen
         */
-        triangle projectCoordinates(triangle tri) {
+        Triangle ProjectCoordinates(Triangle tri) {
 
             // Perspective projection matrix specifications (column major matrix)
-            matrix4x4 projectionMatrix = { 0 };
+            Matrix4x4 projectionMatrix = { 0 };
             projectionMatrix.m[0][0] = (2 * near) / (right - left);
             projectionMatrix.m[1][1] = (2 * near) / (bottom - top);
             projectionMatrix.m[2][2] = (far + near) / (far - near);
@@ -73,10 +73,10 @@ class Screen {
             projectionMatrix.m[2][3] = 1.0;
 
             // For each vertex in the triangle, project its coordinates from 3D -> 2D based on the perspective projection matrix
-            triangle triProjected;
-            multiplyVectorMatrix(tri.points[0], triProjected.points[0], projectionMatrix);
-            multiplyVectorMatrix(tri.points[1], triProjected.points[1], projectionMatrix);
-            multiplyVectorMatrix(tri.points[2], triProjected.points[2], projectionMatrix);
+            Triangle triProjected;
+            MultiplyVectorMatrix(tri.points[0], triProjected.points[0], projectionMatrix);
+            MultiplyVectorMatrix(tri.points[1], triProjected.points[1], projectionMatrix);
+            MultiplyVectorMatrix(tri.points[2], triProjected.points[2], projectionMatrix);
 
             return triProjected;
         }
@@ -84,9 +84,9 @@ class Screen {
 		/**
         * Normalize the projected vertices to fit the display screen buffer.
         */
-		triangle normalizeCoordinates(triangle triProjected) {
+		Triangle NormalizeCoordinates(Triangle triProjected) {
 
-            triangle triNormalized;
+            Triangle triNormalized;
         
             // Normalize each vertex of the projected triangle
             for (int i = 0; i < 3; i++) {
@@ -137,7 +137,7 @@ class Screen {
 
                     while (len--) {
                         // Calculate the z value for each x,y coorodinate pair within the triangle
-                        char z = (char) (calculateZ(p0, p1, p2, x, y)) + '0';
+                        target_t z = (CalculateZ(p0, p1, p2, x, y)) + '0';
 
                         // Set each pixel within the triangle
                         SetPixel(x++, y, z);
@@ -161,13 +161,13 @@ class Screen {
             float far = 2.0; // distance from viewer to furthest point in screen
 
             /**
-            * Sets a pixel in the display screen to the given character
+            * This fragment shader sets a pixel in the display screen to the given character
             */
-            void SetPixel(int x, int y, char c) {
-                char zValue = zBuffer[GetIndex(y,x)];
+            void SetPixel(int x, int y, target_t t) {
+                target_t zValue = zBuffer[GetIndex(y,x)];
 
                 if (zValue == SCREEN_INIT_CHAR) {
-                    zValue = c;
+                    zValue = t;
                 }
 
                 buffer[GetIndex(y,x)] = zValue;
@@ -194,7 +194,7 @@ class Screen {
             * Given the three vertices of a triangle and some x,y values within the triangle, caluclate the z value related to the given x and y values.
             * Uses the equation plane caluclation to determine the z value.
             */
-            float calculateZ(Point3D p1, Point3D p2, Point3D p3, int x, int y) { 
+            float CalculateZ(Point3D p1, Point3D p2, Point3D p3, int x, int y) { 
                 float a1 = p2.x - p1.x; 
                 float b1 = p2.y - p1.y; 
                 float c1 = p2.z - p1.z; 
@@ -214,7 +214,7 @@ class Screen {
             * Multiply a 3DPoint of (x,y,z) cordinates with a by a projection matrix.
             * Note: This is column major multiplication and the projection matrix is also column major oriented.
             */
-            void multiplyVectorMatrix(Point3D &input, Point3D &output, matrix4x4 &matrix) {
+            void MultiplyVectorMatrix(Point3D &input, Point3D &output, Matrix4x4 &matrix) {
                 output.x = (input.x * matrix.m[0][0]) + (input.y * matrix.m[1][0]) + (input.z * matrix.m[2][0]) + matrix.m[3][0];
                 output.y = (input.x * matrix.m[0][1]) + (input.y * matrix.m[1][1]) + (input.z * matrix.m[2][1]) + matrix.m[3][1];
                 output.z = (input.x * matrix.m[0][2]) + (input.y * matrix.m[1][2]) + (input.z * matrix.m[2][2]) + matrix.m[3][2];
@@ -317,19 +317,19 @@ int main() {
     p4.y = -1.0;
     p4.z = 1.9;
 
-    triangle tri1 = { p1, p2, p3 };
-    triangle tri2 = { p1, p3, p4 };
+    Triangle tri1 = { p1, p2, p3 };
+    Triangle tri2 = { p1, p3, p4 };
 
-    triangle triangles[2] = {tri1, tri2};
+    Triangle triangles[2] = {tri1, tri2};
 
     // For each triangle in the list
-    for (triangle triangle : triangles) {
+    for (Triangle triangle : triangles) {
 
         // Project its vertex coordinates from 3D -> 2D space
-        triangle = screen.projectCoordinates(triangle);
+        triangle = screen.ProjectCoordinates(triangle);
 
          // Normalize its vertex coordinates to fit the display screen
-        triangle = screen.normalizeCoordinates(triangle);
+        triangle = screen.NormalizeCoordinates(triangle);
 
         // Draw the triangle
         screen.DrawTriangle(triangle.points[0], triangle.points[1], triangle.points[2]);
