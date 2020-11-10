@@ -29,6 +29,7 @@ struct matrix4x4 {
 // Holds the minimum and maximum X value for every horizontal line within the triangle
 long ContourX[SCREEN_HEIGHT][2];
 
+template <class target_t>
 class Screen {
     public:
         Screen(int screenWidth, int screenHeight) {
@@ -36,11 +37,11 @@ class Screen {
             height = screenHeight;
             
             // Initialize the screen's display buffer
-            buffer = new char [width * height]; 
+            buffer = new target_t [width * height]; 
             InitializeBuffer(buffer, SCREEN_INIT_CHAR);
 
             // Initialize the screen's z-value buffer
-            zBuffer = new char [width * height];
+            zBuffer = new target_t [width * height];
             InitializeBuffer(zBuffer, SCREEN_INIT_CHAR);
         }
 
@@ -146,8 +147,8 @@ class Screen {
         };
 
         private:
-            char* buffer; // display buffer
-            char* zBuffer; // z-value vuffer
+            target_t* buffer; // display buffer
+            target_t* zBuffer; // z-value vuffer
 
             int width; // screen width
             int height; // screen height
@@ -175,7 +176,7 @@ class Screen {
             /**
             * Initializes a buffer by populating the given character at each index
             */
-            void InitializeBuffer(char* buffer, char character) {
+            void InitializeBuffer(target_t* buffer, target_t character) {
                 for (int i = 0; i < (width * height); ++i) {
                     buffer[i] = character;
                 }
@@ -295,7 +296,7 @@ class Screen {
 int main() {
 
     // Initialize the screen
-    Screen screen = Screen(SCREEN_WIDTH,SCREEN_HEIGHT);
+    Screen<char> screen = Screen<char>(SCREEN_WIDTH,SCREEN_HEIGHT);
 
     // Hard-coded points which match the Assignment 1 Example on Moodle
     Point3D p1, p2, p3, p4;
