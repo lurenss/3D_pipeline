@@ -7,7 +7,7 @@
 
 namespace pipeline3D {
 	
-	struct Vertex {
+	/*struct Vertex {
     	float x;
     	float y;
     	float z;
@@ -16,11 +16,24 @@ namespace pipeline3D {
     	float nz;
     	float u;
     	float v;
+	};*/
+
+	/*
+	template<class Target_t>
+	struct vertex_shader {
+    	virtual Target_t  shade(Vertex) =0;
+    	virtual ~vertex_shader() {}
 	};
+	*/
 	
-	template<class Target_t, class Vertex_Shader>
+	//template<class Target_t>
+	template<class Target_t, class Vertex_Shader, class Vertex, class Scene>
 	class Rasterizer {
 	public:
+		/*Rasterizer() : shader(nullptr) {}
+	
+    	void set_shader(vertex_shader<Target_t>* s) {shader=s;}*/
+
     	Rasterizer() {}
 
     	void set_target(int w, int h, Target_t* t) {
@@ -80,6 +93,12 @@ namespace pipeline3D {
         	projection_matrix[4*3+2] = 0;
         	projection_matrix[4*3+3] = 1;
     	}
+
+		void render_scene() {
+			for (int i; i < scene.triangles.length; i++) {
+				render_triangle(scene.triangles[i].points[0], scene.triangles[i].points[1], scene.triangles[i].points[2]);
+			}
+		}
 	
     	void render_triangle(const Vertex &V1, const Vertex& V2, const Vertex &V3) {
         	Vertex v1=V1;
@@ -328,6 +347,7 @@ namespace pipeline3D {
             	if ((z_buffer[y*width+x]+epsilon)<ndcz) continue;
             	Vertex p=interpolate(vl,vr,w);
             	perspective_correct(p);
+				//target[y*width+x] = shader->shade(p);
             	target[y*width+x] = shader.shade(p);
             	z_buffer[y*width+x]=ndcz;
             	w -= step;
@@ -340,7 +360,10 @@ namespace pipeline3D {
 	
     	Target_t* target;
     	std::vector<float> z_buffer;
+		//vertex_shader<Target_t> *shader;
     	Vertex_Shader shader;
+		Vertex vertex;
+		Scene scene;
 	};
 	
 } //pipeline3D
