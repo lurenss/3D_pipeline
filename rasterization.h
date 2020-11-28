@@ -5,7 +5,6 @@
 #include<vector>
 #include<array>
 
-
 namespace pipeline3D {
 	
 	struct Vertex {
@@ -19,23 +18,11 @@ namespace pipeline3D {
     	float v;
 	};
 	
-	
-	template<class Target_t>
-	struct vertex_shader {
-    	virtual Target_t  shade(Vertex) =0;
-    	virtual ~vertex_shader() {}
-	};
-	
-	
-	
-	
-	template<class Target_t>
+	template<class Target_t, class Vertex_Shader>
 	class Rasterizer {
 	public:
-    	Rasterizer() : shader(nullptr) {}
-	
-    	void set_shader(vertex_shader<Target_t>* s) {shader=s;}
-	
+    	Rasterizer() {}
+
     	void set_target(int w, int h, Target_t* t) {
         	width=w;
         	height=h;
@@ -94,12 +81,10 @@ namespace pipeline3D {
         	projection_matrix[4*3+3] = 1;
     	}
 	
-	
     	void render_triangle(const Vertex &V1, const Vertex& V2, const Vertex &V3) {
         	Vertex v1=V1;
         	Vertex v2=V2;
         	Vertex v3=V3;
-	
 	
         	//project view coordinates to ndc;
         	std::array<float,3> ndc1;
@@ -108,7 +93,6 @@ namespace pipeline3D {
         	project(v1,ndc1);
         	project(v2,ndc2);
         	project(v3,ndc3);
-	
 	
         	// at first sort the three vertices by y-coordinate ascending so v1 is the topmost vertice
         	if(ndc1[1] > ndc2[1]) {
@@ -124,13 +108,10 @@ namespace pipeline3D {
             	std::swap(ndc2,ndc3);
         	}
 	
-	
         	//pre-divide vertex attributes by depth
         	perspective_correct(v1);
         	perspective_correct(v2);
         	perspective_correct(v3);
-	
-	
 	
         	// convert normalized device coordinates into pixel coordinates
         	const float x1f=ndc2idxf(ndc1[0],width);
@@ -157,14 +138,10 @@ namespace pipeline3D {
         	const float q12=(x1f*y2f - x2f*y1f)*idy12;
         	const float q13=(x1f*y3f - x3f*y1f)*idy13;
         	const float q23=(x2f*y3f - x3f*y2f)*idy23;
-	
-	
-	
+
         	bool horizontal12=std::abs(m12)>1.0f;
         	bool horizontal13=std::abs(m13)>1.0f;
         	bool horizontal23=std::abs(m23)>1.0f;
-	
-	
 	
         	if (m13>m12) { // v2 is on the left of the line v1-v3
                 	int y=y1;
@@ -294,9 +271,6 @@ namespace pipeline3D {
 	
             	render_scanline(y,x3,last,v3,interpolate(v2,v3,w2l),ndc3[2],interpolate(ndc2[2],ndc3[2],w2l),w0,step);
         	}
-	
-	
-	
     	}
 	
     	std::array<float,16> projection_matrix;
@@ -315,6 +289,7 @@ namespace pipeline3D {
     	float interpolate(float v1, float v2, float w) {
         	return v1*w + v2*(1.0f-w);
     	}
+
     	Vertex interpolate(const Vertex& v1, const Vertex& v2, float w) {
         	const float w2 = (1.0f-w);
         	Vertex v;
@@ -329,6 +304,7 @@ namespace pipeline3D {
 	
         	return v;
     	}
+
     	void perspective_correct(Vertex& v) {
         	v.z = 1.0f/v.z;
         	v.x *= v.z;
@@ -352,7 +328,7 @@ namespace pipeline3D {
             	if ((z_buffer[y*width+x]+epsilon)<ndcz) continue;
             	Vertex p=interpolate(vl,vr,w);
             	perspective_correct(p);
-            	target[y*width+x] = shader->shade(p);
+            	target[y*width+x] = shader.shade(p);
             	z_buffer[y*width+x]=ndcz;
             	w -= step;
         	}
@@ -362,13 +338,11 @@ namespace pipeline3D {
     	int width;
     	int height;
 	
-	
-	
     	Target_t* target;
     	std::vector<float> z_buffer;
-    	vertex_shader<Target_t> *shader;
+    	Vertex_Shader shader;
 	};
 	
-}//pipeline3D
+} //pipeline3D
 
-#endif // RASTERIZATION_H
+#endif //RASTERIZATION_H

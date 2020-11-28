@@ -4,27 +4,18 @@ using namespace pipeline3D;
 #include<iostream>
 #include<chrono>
 
-
-
-
-
-
-
-
-    struct my_shader : public vertex_shader<char> {
-         char shade(Vertex v) override {
+    struct my_shader {
+         char shade(Vertex v) {
             return static_cast<char>((v.z-1)*10.0f+0.5f)%10+'0';
         }
     };
-
 
     int main() {
         const int w=150;
         const int h=50;
 
         my_shader shader;
-        Rasterizer<char> rasterizer;
-        rasterizer.set_shader(&shader);
+        Rasterizer<char, my_shader> rasterizer;
         rasterizer.set_perspective_projection(-1,1,-1,1,1,2);
 
         std::vector<char> screen(w*h,'.');
@@ -65,4 +56,3 @@ using namespace pipeline3D;
 
         return 0;
     }
-
