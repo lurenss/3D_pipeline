@@ -26,6 +26,17 @@ using namespace pipeline3D;
                 this->u = u;
                 this->v = v;
             }
+
+			void perspective_correct(Vertex_standard& v) {
+				v.z = 1.0f/v.z;
+				v.x *= v.z;
+				v.y *= v.z;
+				v.nx *= v.z;
+				v.ny *= v.z;
+				v.nz *= v.z;
+				v.u *= v.z;
+				v.v *= v.z;
+			}
     }; 
 
     // Child class of Vertex that also contains a boolean value

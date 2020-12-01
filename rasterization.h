@@ -99,9 +99,9 @@ namespace pipeline3D {
 				}
 		
 				//pre-divide vertex attributes by depth
-				perspective_correct(v1);
-				perspective_correct(v2);
-				perspective_correct(v3);
+				v1.perspective_correct(v1);
+				v2.perspective_correct(v2);
+				v3.perspective_correct(v3);
 		
 				// convert normalized device coordinates into pixel coordinates
 				const float x1f=ndc2idxf(ndc1[0],width);
@@ -296,18 +296,6 @@ namespace pipeline3D {
 		
 				return v;
 			}
-
-			template <class Vertex>
-			void perspective_correct(Vertex& v) {
-				v.z = 1.0f/v.z;
-				v.x *= v.z;
-				v.y *= v.z;
-				v.nx *= v.z;
-				v.ny *= v.z;
-				v.nz *= v.z;
-				v.u *= v.z;
-				v.v *= v.z;
-			}
 		
 			template<class Shader, class Vertex>
 			void render_scanline(int y, int xl, int xr, const Vertex& vl, const Vertex& vr, float ndczl, float ndczr, float w, float step, Shader& shader) {
@@ -321,7 +309,7 @@ namespace pipeline3D {
 					const float ndcz=interpolate(ndczl,ndczr,w);
 					if ((z_buffer[y*width+x]+epsilon)<ndcz) continue;
 					Vertex p=interpolate(vl,vr,w);
-					perspective_correct(p);
+					p.perspective_correct(p);
 					target[y*width+x] = shader.shade(p);
 					z_buffer[y*width+x]=ndcz;
 					w -= step;
