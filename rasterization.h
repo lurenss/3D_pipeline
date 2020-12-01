@@ -4,10 +4,11 @@
 #include<cmath>
 #include<vector>
 #include<array>
+#include<iostream>
 
 namespace pipeline3D {
 	
-	template<class Target_t, class Vertex_Shader, class Vertex>
+	template<class Target_t>
 	class Rasterizer {
 		public:
 			Rasterizer() {}
@@ -69,8 +70,9 @@ namespace pipeline3D {
 				projection_matrix[4*3+2] = 0;
 				projection_matrix[4*3+3] = 1;
 			}
-		
-			void render_triangle(const Vertex &V1, const Vertex& V2, const Vertex &V3) {
+
+			template <class Shader, class Vertex>
+			void render_triangle(const Vertex &V1, const Vertex &V2, const Vertex &V3, Shader& shader) {
 				Vertex v1=V1;
 				Vertex v2=V2;
 				Vertex v3=V3;
@@ -146,7 +148,7 @@ namespace pipeline3D {
 							const float w0 = 1.0f + (xf-first)*step;
 		
 							render_scanline(y,first,last,interpolate(v1,v2,w1f),interpolate(v1,v3,w1l),
-											interpolate(ndc1[2],ndc2[2],w1f),interpolate(ndc1[2],ndc3[2],w1l), w0, step);
+											interpolate(ndc1[2],ndc2[2],w1f),interpolate(ndc1[2],ndc3[2],w1l), w0, step, shader);
 							++y;
 							w1f -= idy12;
 							w1l -= idy13;
@@ -156,7 +158,7 @@ namespace pipeline3D {
 						if (y2==y3) {
 							const float step = 1.0f/(xl-xf);
 							const float w0 = 1.0f + (xf-x2)*step;
-							render_scanline(y,x2,x3,v2,v3,ndc2[2],ndc3[2],w0,step);
+							render_scanline(y,x2,x3,v2,v3,ndc2[2],ndc3[2],w0,step, shader);
 							return;
 						} else {
 							if (std::abs(m12)>std::abs(m23)) xf=m23*y+q23;
@@ -166,7 +168,7 @@ namespace pipeline3D {
 							const int last = horizontal13?static_cast<int>(xl+0.5*m13)+1:static_cast<int>(xl)+1;
 		
 							render_scanline(y,x2,last,v2,interpolate(v1,v3,w1l),ndc2[2],interpolate(ndc1[2],ndc3[2],w1l),
-									w0,step);
+									w0,step, shader);
 						}
 						++y;
 						w1l -= idy13;
@@ -183,7 +185,7 @@ namespace pipeline3D {
 		
 							render_scanline(y,first,last,interpolate(v2,v3,w2f),interpolate(v1,v3,w1l),
 											interpolate(ndc2[2],ndc3[2],w2f),interpolate(ndc1[2],ndc3[2],w1l),
-											w0,step);
+											w0,step, shader);
 							++y;
 							w1l -= idy13;
 							w2f -= idy23;
@@ -195,7 +197,7 @@ namespace pipeline3D {
 						const float step = 1.0f/(xl-xf);
 						const float w0 = 1.0f + (xf-first)*step;
 						render_scanline(y,first,x3,interpolate(v2,v3,w2f),v3,interpolate(ndc2[2],ndc3[2],w2f),ndc3[2],
-								w0,step);
+								w0,step, shader);
 		
 				} else { // v2 is on the right of the line v1-v3
 					int y=y1;
@@ -212,7 +214,7 @@ namespace pipeline3D {
 		
 						render_scanline(y,first,last,interpolate(v1,v3,w1f),interpolate(v1,v2,w1l),
 										interpolate(ndc1[2],ndc3[2],w1f),interpolate(ndc1[2],ndc2[2],w1l),
-								w0,step);
+								w0,step, shader);
 						++y;
 						w1f -= idy13;
 						w1l -= idy12;
@@ -223,14 +225,14 @@ namespace pipeline3D {
 						const float step = 1.0f/(xl-xf);
 						const float w0 = 1.0f + (xf-x3)*step;
 		
-						render_scanline(y,x3,x2+1,v3,v2,ndc3[2],ndc2[2],w0,step);
+						render_scanline(y,x3,x2+1,v3,v2,ndc3[2],ndc2[2],w0,step, shader);
 						return;
 					} else {
 						const int first = horizontal13?static_cast<int>(xf+0.5*m13):static_cast<int>(xf);
 						const float step = 1.0f/(x2+1-xf);
 						const float w0 = 1.0f + (xf-first)*step;
 		
-						render_scanline(y,first,x2+1,interpolate(v1,v3,w1f),v2,interpolate(ndc1[2],ndc3[2],w1f),ndc2[2],w0,step);
+						render_scanline(y,first,x2+1,interpolate(v1,v3,w1f),v2,interpolate(ndc1[2],ndc3[2],w1f),ndc2[2],w0,step, shader);
 					}
 					++y;
 					w1f -= idy13;
@@ -247,7 +249,7 @@ namespace pipeline3D {
 		
 						render_scanline(y,first,last,interpolate(v1,v3,w1f),interpolate(v2,v3,w2l),
 										interpolate(ndc1[2],ndc3[2],w1f),interpolate(ndc2[2],ndc3[2],w2l),
-										w0,step);
+										w0,step, shader);
 						++y;
 						w1f -= idy13;
 						w2l -= idy23;
@@ -258,7 +260,7 @@ namespace pipeline3D {
 					const float w0 = 1.0f + (xf-x3)*step;
 					const int last = horizontal23?static_cast<int>(xl+0.5*m23)+1:static_cast<int>(xl)+1;
 		
-					render_scanline(y,x3,last,v3,interpolate(v2,v3,w2l),ndc3[2],interpolate(ndc2[2],ndc3[2],w2l),w0,step);
+					render_scanline(y,x3,last,v3,interpolate(v2,v3,w2l),ndc3[2],interpolate(ndc2[2],ndc3[2],w2l),w0,step, shader);
 				}
 			}
 		
@@ -268,6 +270,7 @@ namespace pipeline3D {
 		
 			float ndc2idxf(float ndc, int range) { return (ndc+1.0f)*(range-1)/2.0f; }
 		
+			template <class Vertex>
 			void project(const Vertex &v, std::array<float,3> &ndc) {
 				const float w=v.x*projection_matrix[4*3+0] + v.y*projection_matrix[4*3+1] + v.z*projection_matrix[4*3+2] + projection_matrix[4*3+3];
 				ndc[0] = (v.x*projection_matrix[4*0+0] + v.y*projection_matrix[4*0+1] + v.z*projection_matrix[4*0+2] + projection_matrix[4*0+3])/w;
@@ -279,6 +282,7 @@ namespace pipeline3D {
 				return v1*w + v2*(1.0f-w);
 			}
 
+			template <class Vertex>
 			Vertex interpolate(const Vertex& v1, const Vertex& v2, float w) {
 				const float w2 = (1.0f-w);
 				Vertex v;
@@ -294,6 +298,7 @@ namespace pipeline3D {
 				return v;
 			}
 
+			template <class Vertex>
 			void perspective_correct(Vertex& v) {
 				v.z = 1.0f/v.z;
 				v.x *= v.z;
@@ -305,7 +310,8 @@ namespace pipeline3D {
 				v.v *= v.z;
 			}
 		
-			void render_scanline(int y, int xl, int xr, const Vertex& vl, const Vertex& vr, float ndczl, float ndczr, float w, float step) {
+			template<class Shader, class Vertex>
+			void render_scanline(int y, int xl, int xr, const Vertex& vl, const Vertex& vr, float ndczl, float ndczr, float w, float step, Shader& shader) {
 				constexpr float epsilon = 1.0e-8f;
 				if (y<0 || y>=height) return;
 		
@@ -328,8 +334,6 @@ namespace pipeline3D {
 		
 			Target_t* target;
 			std::vector<float> z_buffer;
-			Vertex_Shader shader;
-			Vertex vertex;
 	};
 	
 } //pipeline3D
