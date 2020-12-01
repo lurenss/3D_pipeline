@@ -4,7 +4,6 @@
 #include<cmath>
 #include<vector>
 #include<array>
-#include<iostream>
 
 namespace pipeline3D {
 	
@@ -285,7 +284,7 @@ namespace pipeline3D {
 			template <class Vertex>
 			Vertex interpolate(const Vertex& v1, const Vertex& v2, float w) {
 				const float w2 = (1.0f-w);
-				Vertex v;
+				Vertex v = v1;
 				v.x = (w*v1.x + w2*v2.x);
 				v.y = (w*v1.y + w2*v2.y);
 				v.z = (w*v1.z + w2*v2.z);
@@ -315,7 +314,7 @@ namespace pipeline3D {
 				constexpr float epsilon = 1.0e-8f;
 				if (y<0 || y>=height) return;
 		
-				Vertex p;
+				Vertex p = vl;
 				int x=std::max(xl,0);
 				w += (xl-x)*step;
 				for (; x!=std::min(width,xr+1); ++x) {
