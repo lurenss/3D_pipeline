@@ -146,7 +146,7 @@ namespace pipeline3D {
 							const float step = 1.0f/(xl-xf);
 							const float w0 = 1.0f + (xf-first)*step;
 		
-							render_scanline(y,first,last,interpolate(v1,v2,w1f),interpolate(v1,v3,w1l),
+							render_scanline(y,first,last,v1.interpolate(v1,v2,w1f),v1.interpolate(v1,v3,w1l),
 											interpolate(ndc1[2],ndc2[2],w1f),interpolate(ndc1[2],ndc3[2],w1l), w0, step, shader);
 							++y;
 							w1f -= idy12;
@@ -166,7 +166,7 @@ namespace pipeline3D {
 							const float w0 = 1.0f + (xf-x2)*step;
 							const int last = horizontal13?static_cast<int>(xl+0.5*m13)+1:static_cast<int>(xl)+1;
 		
-							render_scanline(y,x2,last,v2,interpolate(v1,v3,w1l),ndc2[2],interpolate(ndc1[2],ndc3[2],w1l),
+							render_scanline(y,x2,last,v2,v1.interpolate(v1,v3,w1l),ndc2[2],interpolate(ndc1[2],ndc3[2],w1l),
 									w0,step, shader);
 						}
 						++y;
@@ -182,7 +182,7 @@ namespace pipeline3D {
 							const float step = 1.0f/(xl-xf);
 							const float w0 = 1.0f + (xf-first)*step;
 		
-							render_scanline(y,first,last,interpolate(v2,v3,w2f),interpolate(v1,v3,w1l),
+							render_scanline(y,first,last,v2.interpolate(v2,v3,w2f),v1.interpolate(v1,v3,w1l),
 											interpolate(ndc2[2],ndc3[2],w2f),interpolate(ndc1[2],ndc3[2],w1l),
 											w0,step, shader);
 							++y;
@@ -195,7 +195,7 @@ namespace pipeline3D {
 						const int first = horizontal23?static_cast<int>(xf+0.5*m23):static_cast<int>(xf);
 						const float step = 1.0f/(xl-xf);
 						const float w0 = 1.0f + (xf-first)*step;
-						render_scanline(y,first,x3,interpolate(v2,v3,w2f),v3,interpolate(ndc2[2],ndc3[2],w2f),ndc3[2],
+						render_scanline(y,first,x3,v2.interpolate(v2,v3,w2f),v3,interpolate(ndc2[2],ndc3[2],w2f),ndc3[2],
 								w0,step, shader);
 		
 				} else { // v2 is on the right of the line v1-v3
@@ -211,7 +211,7 @@ namespace pipeline3D {
 						const float step = 1.0f/(xl-xf);
 						const float w0 = 1.0f + (xf-first)*step;
 		
-						render_scanline(y,first,last,interpolate(v1,v3,w1f),interpolate(v1,v2,w1l),
+						render_scanline(y,first,last,v1.interpolate(v1,v3,w1f),v1.interpolate(v1,v2,w1l),
 										interpolate(ndc1[2],ndc3[2],w1f),interpolate(ndc1[2],ndc2[2],w1l),
 								w0,step, shader);
 						++y;
@@ -231,7 +231,7 @@ namespace pipeline3D {
 						const float step = 1.0f/(x2+1-xf);
 						const float w0 = 1.0f + (xf-first)*step;
 		
-						render_scanline(y,first,x2+1,interpolate(v1,v3,w1f),v2,interpolate(ndc1[2],ndc3[2],w1f),ndc2[2],w0,step, shader);
+						render_scanline(y,first,x2+1,v1.interpolate(v1,v3,w1f),v2,interpolate(ndc1[2],ndc3[2],w1f),ndc2[2],w0,step, shader);
 					}
 					++y;
 					w1f -= idy13;
@@ -246,7 +246,7 @@ namespace pipeline3D {
 						const float step = 1.0f/(xl-xf);
 						const float w0 = 1.0f + (xf-first)*step;
 		
-						render_scanline(y,first,last,interpolate(v1,v3,w1f),interpolate(v2,v3,w2l),
+						render_scanline(y,first,last,v1.interpolate(v1,v3,w1f),v2.interpolate(v2,v3,w2l),
 										interpolate(ndc1[2],ndc3[2],w1f),interpolate(ndc2[2],ndc3[2],w2l),
 										w0,step, shader);
 						++y;
@@ -259,7 +259,7 @@ namespace pipeline3D {
 					const float w0 = 1.0f + (xf-x3)*step;
 					const int last = horizontal23?static_cast<int>(xl+0.5*m23)+1:static_cast<int>(xl)+1;
 		
-					render_scanline(y,x3,last,v3,interpolate(v2,v3,w2l),ndc3[2],interpolate(ndc2[2],ndc3[2],w2l),w0,step, shader);
+					render_scanline(y,x3,last,v3,v2.interpolate(v2,v3,w2l),ndc3[2],interpolate(ndc2[2],ndc3[2],w2l),w0,step, shader);
 				}
 			}
 		
@@ -280,22 +280,6 @@ namespace pipeline3D {
 			float interpolate(float v1, float v2, float w) {
 				return v1*w + v2*(1.0f-w);
 			}
-
-			template <class Vertex>
-			Vertex interpolate(const Vertex& v1, const Vertex& v2, float w) {
-				const float w2 = (1.0f-w);
-				Vertex v = v1;
-				v.x = (w*v1.x + w2*v2.x);
-				v.y = (w*v1.y + w2*v2.y);
-				v.z = (w*v1.z + w2*v2.z);
-				v.nx = (w*v1.nx + w2*v2.nx);
-				v.ny = (w*v1.ny + w2*v2.ny);
-				v.nz = (w*v1.nz + w2*v2.nz);
-				v.u = (w*v1.u + w2*v2.u);
-				v.v = (w*v1.v + w2*v2.v);
-		
-				return v;
-			}
 		
 			template<class Shader, class Vertex>
 			void render_scanline(int y, int xl, int xr, const Vertex& vl, const Vertex& vr, float ndczl, float ndczr, float w, float step, Shader& shader) {
@@ -308,7 +292,7 @@ namespace pipeline3D {
 				for (; x!=std::min(width,xr+1); ++x) {
 					const float ndcz=interpolate(ndczl,ndczr,w);
 					if ((z_buffer[y*width+x]+epsilon)<ndcz) continue;
-					Vertex p=interpolate(vl,vr,w);
+					Vertex p = vl.interpolate(vl,vr,w);
 					p.perspective_correct(p);
 					target[y*width+x] = shader.shade(p);
 					z_buffer[y*width+x]=ndcz;
