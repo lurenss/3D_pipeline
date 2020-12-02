@@ -37,6 +37,21 @@ using namespace pipeline3D;
 				v.u *= v.z;
 				v.v *= v.z;
 			}
+
+            Vertex_standard interpolate(const Vertex_standard& v1, const Vertex_standard& v2, float w) const {
+				const float w2 = (1.0f-w);
+				Vertex_standard v = v1;
+				v.x = (w*v1.x + w2*v2.x);
+				v.y = (w*v1.y + w2*v2.y);
+				v.z = (w*v1.z + w2*v2.z);
+				v.nx = (w*v1.nx + w2*v2.nx);
+				v.ny = (w*v1.ny + w2*v2.ny);
+				v.nz = (w*v1.nz + w2*v2.nz);
+				v.u = (w*v1.u + w2*v2.u);
+				v.v = (w*v1.v + w2*v2.v);
+
+				return v;
+			}
     }; 
 
     // Child class of Vertex that also contains a boolean value
@@ -47,9 +62,24 @@ using namespace pipeline3D;
             Vertex_bool(float x, float y, float z, float nx, float ny, float nz, float u, float v, bool b) : Vertex_standard(x, y, z, nx, ny, nz, u, v) {
                 this->b = b;
             }
+
+            Vertex_bool interpolate(const Vertex_bool& v1, const Vertex_bool& v2, float w) const {
+                const float w2 = (1.0f-w);
+				Vertex_bool v = v1;
+				v.x = (w*v1.x + w2*v2.x);
+				v.y = (w*v1.y + w2*v2.y);
+				v.z = (w*v1.z + w2*v2.z);
+				v.nx = (w*v1.nx + w2*v2.nx);
+				v.ny = (w*v1.ny + w2*v2.ny);
+				v.nz = (w*v1.nz + w2*v2.nz);
+				v.u = (w*v1.u + w2*v2.u);
+				v.v = (w*v1.v + w2*v2.v);
+		
+				return v;
+			}
     }; 
 
-    // Shades a pixel based on if its boolean value is true or false
+    // Shades a pixel based on the bolean value at the vertex
     struct Shader_bool {
         template <class Vertex>
         char shade(Vertex v) {
@@ -61,7 +91,7 @@ using namespace pipeline3D;
         }
     };
 
-    // Shades a pixel based on if its z-value
+    // Shades a pixel based on the z-value at the vertex
     struct Shader_depth {
         template <class Vertex>
         char shade(Vertex v) {
@@ -73,11 +103,11 @@ using namespace pipeline3D;
         const int w=150;
         const int h=50;
 
-       // Create two kinds of shaders
+       // Create two different types of shaders
         Shader_depth shader_depth;
         Shader_bool shader_bool;
 
-        // Create two kinds of vertices
+        // Create two different types of vertices
         constexpr float slope=-0.2f;
         Vertex_standard v1 = {1,-1,1.5f+slope*(1-1),0,0,0,0,0}, v2 = {1,1,1.5f+slope*(1+1),0,0,0,1,0}, v3 = {-1,1,1.5f-+slope*(-1+1),0,0,0,1,0};
         Vertex_bool v1_bool = {1,-1,1.5f+slope*(1-1),0,0,0,0,0,false}, v3_bool = {-1,1,1.5f-+slope*(-1+1),0,0,0,1,0,true}, v4_bool = {-1,-1,1.5f+slope*(-1-1),0,0,0,0,0,true};
@@ -100,7 +130,7 @@ using namespace pipeline3D;
 
         std::cout << "elapsed time: " << elapsed_time << '\n';
 
-        // Render our two object with their related shaders
+        // Render the triangles given our vertices and shader
         rasterizer.render_triangle(v1, v2, v3, shader_depth); // Standard vertex & depth shader
         rasterizer.render_triangle(v4_bool, v1_bool, v3_bool, shader_bool); // Vertex with boolean value & boolean shader
 
