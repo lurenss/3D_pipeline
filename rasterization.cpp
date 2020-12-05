@@ -79,7 +79,7 @@ using namespace pipeline3D;
 			}
     }; 
 
-    // Shades a pixel based on the boolean value at the vertex
+    // Shades a pixel based on the bolean value at the vertex
     struct Shader_bool {
         template <class Vertex>
         char shade(Vertex v) {
@@ -99,44 +99,60 @@ using namespace pipeline3D;
         }
     };
 
-    template<class Rasterizer, class Vertex, class Shader>
-    class Scene_object {
-        public: 
-            std::vector<Vertex> vertices;
-            Shader shader;
 
-            void render(Rasterizer& r) {
-                r.render_triangle(vertices[0], vertices[1], vertices[2], shader);
-            }
 
-            Scene_object(std::vector<Vertex> vertices, Shader shader) {
-                this->vertices = vertices;
-                this->shader = shader;
-            };
+
+    struct my_object : public Rasterizer<char>::scene_object{
+        std::vector<Vertex_standard> v;
+        Shader_depth shader;
+
+        void render(Rasterizer<char>& r) override {
+            r.render_triangle(v[0],v[1],v[2],shader);
+        };
     };
 
+    struct my_object1 : public Rasterizer<char>::scene_object{
+        std::vector<Vertex_bool> v;
+        Shader_bool shader;
+
+        void render(Rasterizer<char>& r) override {
+            r.render_triangle(v[0],v[1],v[2],shader);
+        };
+    };
+
+    class Scene : public Rasterizer<char>::scene{};
+    
     int main() {
         const int w=150;
         const int h=50;
-
-       // Create two different types of shaders
-        Shader_depth shader_depth;
-        Shader_bool shader_bool;
 
         // Create two different types of vertices
         constexpr float slope=-0.2f;
         Vertex_standard v1 = {1,-1,1.5f+slope*(1-1),0,0,0,0,0}, v2 = {1,1,1.5f+slope*(1+1),0,0,0,1,0}, v3 = {-1,1,1.5f-+slope*(-1+1),0,0,0,1,0};
         Vertex_bool v1_bool = {1,-1,1.5f+slope*(1-1),0,0,0,0,0,false}, v3_bool = {-1,1,1.5f-+slope*(-1+1),0,0,0,1,0,true}, v4_bool = {-1,-1,1.5f+slope*(-1-1),0,0,0,0,0,true};
         
-        std::vector<Vertex_standard> vertices_standard = {v1, v2, v3};
-        std::vector<Vertex_bool> vertices_bool = {v1_bool, v3_bool, v4_bool};
+        
+        // Insert vertices inside the two differe objects  
+        my_object A;
+        A.v.push_back(v1);
+        A.v.push_back(v2);
+        A.v.push_back(v3);
 
-        Scene_object<Rasterizer<char>, Vertex_standard, Shader_depth> scene_object_standard = {vertices_standard, shader_depth}; // Standard vertices & depth shader
-        Scene_object<Rasterizer<char>, Vertex_bool, Shader_bool> scene_object_bool = {vertices_bool, shader_bool}; // Vertices with boolean value & boolean shader
+        my_object1 B;
+        B.v.push_back(v1_bool);
+        B.v.push_back(v3_bool);
+        B.v.push_back(v4_bool);
 
+        
+        //Set up scene 
+        Scene s;
+        s.scene.push_back(&A);
+        s.scene.push_back(&B);
+        
         // Set up rasterizer with projection & screen information
         Rasterizer<char> rasterizer;
         rasterizer.set_perspective_projection(-1,1,-1,1,1,2);
+
 
         std::vector<char> screen(w*h,'.');
         rasterizer.set_target(w,h,&screen[0]);
@@ -144,17 +160,13 @@ using namespace pipeline3D;
         // Caluclate elapsed time
         auto start_time = std::chrono::high_resolution_clock::now();
         for (int i=0; i!=100000; ++i) {
-            scene_object_standard.render(rasterizer);
-            scene_object_bool.render(rasterizer);
+            s.render(rasterizer);
         }
         auto end_time = std::chrono::high_resolution_clock::now();
         double elapsed_time = std::chrono::duration<double>(end_time-start_time).count();
 
         std::cout << "elapsed time: " << elapsed_time << '\n';
 
-        // Render the triangles given our vertices and shader
-        scene_object_standard.render(rasterizer);
-        scene_object_bool.render(rasterizer);
 
         // Print out the screen with a frame around it
         std::cout << '+';

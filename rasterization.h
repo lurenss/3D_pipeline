@@ -7,6 +7,8 @@
 
 namespace pipeline3D {
 	
+	
+	
 	template<class Target_t>
 	class Rasterizer {
 		public:
@@ -264,6 +266,26 @@ namespace pipeline3D {
 			}
 		
 			std::array<float,16> projection_matrix;
+
+
+			class scene_object {
+				public:
+					virtual void render(Rasterizer& r) = 0;
+					virtual ~scene_object(){}
+			};
+
+			class scene{
+				public:
+					std::vector<scene_object*> scene;
+					void render(Rasterizer& r){
+						for (scene_object* obj : scene){
+							obj->render(r);
+						}					
+					};
+					
+			};
+
+
 	
 		private:
 		
