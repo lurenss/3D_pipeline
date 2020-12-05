@@ -99,24 +99,23 @@ using namespace pipeline3D;
         }
     };
 
-
-
-
-    struct my_object : public Rasterizer<char>::scene_object{
+    // Object composed of standard vertices and depth shader
+    struct my_object_standard : public Rasterizer<char>::scene_object {
         std::vector<Vertex_standard> v;
         Shader_depth shader;
 
         void render(Rasterizer<char>& r) override {
-            r.render_triangle(v[0],v[1],v[2],shader);
+            r.render_triangle(v[0], v[1], v[2], shader);
         };
     };
 
-    struct my_object1 : public Rasterizer<char>::scene_object{
+    // Object composed of vertices with boolean value and boolean shader
+    struct my_object_bool : public Rasterizer<char>::scene_object {
         std::vector<Vertex_bool> v;
         Shader_bool shader;
 
         void render(Rasterizer<char>& r) override {
-            r.render_triangle(v[0],v[1],v[2],shader);
+            r.render_triangle(v[0], v[1], v[2], shader);
         };
     };
 
@@ -131,20 +130,19 @@ using namespace pipeline3D;
         Vertex_standard v1 = {1,-1,1.5f+slope*(1-1),0,0,0,0,0}, v2 = {1,1,1.5f+slope*(1+1),0,0,0,1,0}, v3 = {-1,1,1.5f-+slope*(-1+1),0,0,0,1,0};
         Vertex_bool v1_bool = {1,-1,1.5f+slope*(1-1),0,0,0,0,0,false}, v3_bool = {-1,1,1.5f-+slope*(-1+1),0,0,0,1,0,true}, v4_bool = {-1,-1,1.5f+slope*(-1-1),0,0,0,0,0,true};
         
-        
-        // Insert vertices inside the two differe objects  
-        my_object A;
+        // Insert vertices inside the two different objects  
+        my_object_standard A;
         A.v.push_back(v1);
         A.v.push_back(v2);
         A.v.push_back(v3);
 
-        my_object1 B;
+        my_object_bool B;
         B.v.push_back(v1_bool);
         B.v.push_back(v3_bool);
         B.v.push_back(v4_bool);
 
         
-        //Set up scene 
+        // Add objects to scene
         Scene s;
         s.scene.push_back(&A);
         s.scene.push_back(&B);
@@ -153,11 +151,10 @@ using namespace pipeline3D;
         Rasterizer<char> rasterizer;
         rasterizer.set_perspective_projection(-1,1,-1,1,1,2);
 
-
         std::vector<char> screen(w*h,'.');
         rasterizer.set_target(w,h,&screen[0]);
 
-        // Caluclate elapsed time
+        // Caluclate elapsed time while rendering scene
         auto start_time = std::chrono::high_resolution_clock::now();
         for (int i=0; i!=100000; ++i) {
             s.render(rasterizer);
@@ -166,7 +163,6 @@ using namespace pipeline3D;
         double elapsed_time = std::chrono::duration<double>(end_time-start_time).count();
 
         std::cout << "elapsed time: " << elapsed_time << '\n';
-
 
         // Print out the screen with a frame around it
         std::cout << '+';
