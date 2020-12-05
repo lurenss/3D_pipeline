@@ -7,8 +7,6 @@
 
 namespace pipeline3D {
 	
-	
-	
 	template<class Target_t>
 	class Rasterizer {
 		public:
@@ -29,7 +27,7 @@ namespace pipeline3D {
 				const float h=bottom-top;
 				const float d=far-near;
 		
-				//row-major
+				// row-major
 				projection_matrix[0] = 2.0f*near/w;
 				projection_matrix[1] = 0;
 				projection_matrix[2] = -(right+left)/w;
@@ -53,7 +51,7 @@ namespace pipeline3D {
 				const float h=bottom-top;
 				const float d=far-near;
 		
-				//row-major
+				// row-major
 				projection_matrix[0] = 2.0f/w;
 				projection_matrix[1] = 0;
 				projection_matrix[2] = 0;
@@ -78,7 +76,7 @@ namespace pipeline3D {
 				Vertex v2=V2;
 				Vertex v3=V3;
 		
-				//project view coordinates to ndc;
+				// project view coordinates to ndc;
 				std::array<float,3> ndc1;
 				std::array<float,3> ndc2;
 				std::array<float,3> ndc3;
@@ -267,7 +265,6 @@ namespace pipeline3D {
 		
 			std::array<float,16> projection_matrix;
 
-
 			class scene_object {
 				public:
 					virtual void render(Rasterizer& r) = 0;
@@ -278,15 +275,13 @@ namespace pipeline3D {
 				public:
 					std::vector<scene_object*> scene;
 					void render(Rasterizer& r){
-						for (scene_object* obj : scene){
+						for (scene_object* obj : scene) {
 							obj->render(r);
 						}					
 					};
 					
 			};
 
-
-	
 		private:
 		
 			float ndc2idxf(float ndc, int range) { return (ndc+1.0f)*(range-1)/2.0f; }
